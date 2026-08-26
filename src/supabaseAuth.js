@@ -28,12 +28,15 @@ async function deleteSupabaseUser(userId) {
     throw Object.assign(new Error("Supabase account deletion is not configured"), { status: 503 });
   }
   const base = SUPABASE_URL.replace(/\/auth\/v1\/user\/?$/, "").replace(/\/+$/, "");
+  const headers = { apikey: SUPABASE_SERVICE_ROLE_KEY };
+  // New sb_secret_* keys are opaque API keys, not JWTs. Legacy service_role
+  // keys remain JWTs and still require the Authorization header.
+  if (!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")) {
+    headers.Authorization = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  }
   const res = await fetch(`${base}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
     method: "DELETE",
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    },
+    headers,
   });
   if (!res.ok && res.status !== 404) {
     const text = await res.text();
