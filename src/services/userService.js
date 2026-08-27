@@ -1,6 +1,6 @@
 const { DOCTYPE, ERP_BASE_URL } = require("../config");
 const { erpGetList, erpGetDoc, erpCallMethod } = require("../frappeClient");
-const { pickExternalId, attachCustomerIdentity } = require("../normalize");
+const { pickExternalId, attachCustomerIdentity, toFrappeDatetime } = require("../normalize");
 
 /** Child collections returned by `mobile_app.api.v1.users_lookup` — stripped before parent-only enrichment; re-attached for `GET …/users/lookup`. */
 const V1_CHILD_KEYS = [
@@ -223,9 +223,13 @@ async function tryUsersLookupV1(merged = {}) {
 
 async function syncMobileAppUserViaV1(body = {}, { throwOnError = false } = {}) {
   try {
+    const frappeBody = {
+      ...body,
+      ...(body.last_login_at ? { last_login_at: toFrappeDatetime(body.last_login_at) } : {}),
+    };
     const parsed = await erpCallMethod("mobileintl_app.api.v1.users_sync", {
       method: "POST",
-      body,
+      body: frappeBody,
       appToken: true,
     });
     const data = unwrapMobileAppV1Message(parsed);
