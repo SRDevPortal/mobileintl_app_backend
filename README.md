@@ -30,16 +30,8 @@ npm run dev
 | `ERP_BASE_URL` | Frappe site root, e.g. `https://your-site.com` |
 | `ERP_TOKEN` | `api_key:api_secret` when `ERP_AUTH_SCHEME=token`, or bearer token |
 | `ERP_AUTH_SCHEME` | `token` (default) or `bearer` |
-| `REMINDER_BEFORE_MINUTES` | Appointment reminder lead time, default `120` |
 | `REMINDER_LOOKAHEAD_MINUTES` | Reminder due window per poll, default `15` |
 | `REMINDER_POLL_INTERVAL_MS` | Backend reminder scheduler interval, default `60000` |
-| `REMINDER_SCHEDULER_DISABLED` | Set `true` to disable automatic appointment reminder polling |
-| `RAZORPAY_KEY_ID` | Razorpay public key id used to open checkout |
-| `RAZORPAY_KEY_SECRET` | Razorpay secret, used only by backend for orders and signature verification |
-| `RAZORPAY_CURRENCY` | Payment currency, default `INR` |
-| `APPOINTMENT_FEE_ONLINE_PAISE` | Online consultation pay-now amount, default `9900` |
-| `APPOINTMENT_FEE_OPD_PAISE` | OPD consultation pay-now amount, default `49900` |
-| `APPOINTMENT_OPD_PAYABLE_AT_CLINIC_PAISE` | Remaining OPD clinic balance, default `50000` |
 | `DOCTYPE_*` | Override Frappe DocType titles if needed |
 
 ## Routes (aligned with filds.md + Frappe fields)
@@ -55,9 +47,6 @@ npm run dev
 | `POST` | `/api/v1/health-entries` | Sync **`health_entries`** via `users_full_sync` (**one row per `tool_key`**, all logs in `data_json` array) |
 | `POST` | `/api/v1/prescriptions` | Create **Mobile App Prescription** |
 | `POST` | `/api/v1/doctors/sync` | Upsert **Mobile App Doctor** |
-| `POST` | `/api/v1/appointments` | Upsert **`appointments`** child via `users_full_sync` (by `booking_id` / `appointment_external_id`) |
-| `POST` | `/api/v1/payments/razorpay/orders` | Create Razorpay appointment order; returns key id and order id, never the key secret |
-| `POST` | `/api/v1/payments/razorpay/verify` | Verify Razorpay payment signature before appointment creation |
 | `POST` | `/api/v1/notifications` | Create **Mobile App Notification** (`type` → `notification_type`) |
 | `POST` | `/api/v1/support-tickets` | Create **Mobile App Support Ticket** (`name` → `requester_name`) |
 | `POST` | `/api/v1/webhook-events` | Create **Mobile App Webhook Event**; optional user via `customer_id` / `customer_email` / normal user keys |
