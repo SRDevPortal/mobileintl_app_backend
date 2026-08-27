@@ -264,7 +264,7 @@ router.post("/", async (req, res) => {
     let savedViaResourceApi = false;
     let standaloneAppointment = null;
     try {
-      parsed = await erpCallMethod("mobile_app.api.v1.users_full_sync", {
+      parsed = await erpCallMethod("mobileintl_app.api.v1.users_full_sync", {
         method: "POST",
         appToken: true,
         body: stripRootUndefined({

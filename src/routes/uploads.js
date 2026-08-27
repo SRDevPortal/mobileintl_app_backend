@@ -105,7 +105,7 @@ router.post("/prescription", prescriptionUpload.single("file"), async (req, res)
       };
       const next = mergeHealthEntriesForToolSync(existing, body, parentExternalId);
       try {
-        const parsed = await erpCallMethod("mobile_app.api.v1.users_full_sync", {
+        const parsed = await erpCallMethod("mobileintl_app.api.v1.users_full_sync", {
           method: "POST",
           appToken: true,
           body: {

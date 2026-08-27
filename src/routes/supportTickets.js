@@ -136,31 +136,31 @@ const EMBEDDED_MESSAGE_FIELDS = [
   "communications",
 ];
 const SUPPORT_LOOKUP_METHODS = [
-  "mobile_app.api.v1.support_tickets_lookup",
-  "mobile_app.api.v1.support_tickets_list",
-  "mobile_app.api.v1.support_tickets_get",
-  "mobile_app.api.v1.support_tickets_full_sync",
-  "mobile_app.api.v1.support_ticket_lookup",
-  "mobile_app.api.v1.support_ticket_list",
-  "mobile_app.api.v1.support_ticket_get",
-  "mobile_app.api.v1.support_tickets",
-  "mobile_app.api.v1.support_ticket",
-  "mobile_app.api.v1.tickets_lookup",
-  "mobile_app.api.v1.tickets_list",
-  "mobile_app.api.v1.user_tickets",
-  "mobile_app.api.v1.get_user_tickets",
-  "mobile_app.api.v1.get_support_tickets",
-  "mobile_app.api.v1.support.lookup",
-  "mobile_app.api.v1.support.list_tickets",
-  "mobile_app.api.v1.support.get_tickets",
+  "mobileintl_app.api.v1.support_tickets_lookup",
+  "mobileintl_app.api.v1.support_tickets_list",
+  "mobileintl_app.api.v1.support_tickets_get",
+  "mobileintl_app.api.v1.support_tickets_full_sync",
+  "mobileintl_app.api.v1.support_ticket_lookup",
+  "mobileintl_app.api.v1.support_ticket_list",
+  "mobileintl_app.api.v1.support_ticket_get",
+  "mobileintl_app.api.v1.support_tickets",
+  "mobileintl_app.api.v1.support_ticket",
+  "mobileintl_app.api.v1.tickets_lookup",
+  "mobileintl_app.api.v1.tickets_list",
+  "mobileintl_app.api.v1.user_tickets",
+  "mobileintl_app.api.v1.get_user_tickets",
+  "mobileintl_app.api.v1.get_support_tickets",
+  "mobileintl_app.api.v1.support.lookup",
+  "mobileintl_app.api.v1.support.list_tickets",
+  "mobileintl_app.api.v1.support.get_tickets",
 ];
 const SUPPORT_SYNC_METHODS = [
-  "mobile_app.api.v1.support_tickets_sync",
-  "mobile_app.api.v1.support_tickets_create",
-  "mobile_app.api.v1.support_ticket_sync",
-  "mobile_app.api.v1.support_ticket_create",
-  "mobile_app.api.v1.create_support_ticket",
-  "mobile_app.api.v1.support.create_ticket",
+  "mobileintl_app.api.v1.support_tickets_sync",
+  "mobileintl_app.api.v1.support_tickets_create",
+  "mobileintl_app.api.v1.support_ticket_sync",
+  "mobileintl_app.api.v1.support_ticket_create",
+  "mobileintl_app.api.v1.create_support_ticket",
+  "mobileintl_app.api.v1.support.create_ticket",
 ];
 
 function toApiStatus(value) {
@@ -583,7 +583,7 @@ async function findResourceTicketsForQueries(doctype, queries, { limit, offset }
 
 async function findTickets({ userId, userLinkName, userEmail, userPhone, userName, status, limit, offset }) {
   try {
-    const parsed = await erpCallMethod("mobile_app.api.v1.users_lookup", {
+    const parsed = await erpCallMethod("mobileintl_app.api.v1.users_lookup", {
       method: "GET",
       appToken: true,
       query: {

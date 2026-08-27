@@ -68,7 +68,7 @@ router.post("/sync", async (req, res) => {
     let parsed;
     let savedViaResourceApi = false;
     try {
-      parsed = await erpCallMethod("mobile_app.api.v1.users_full_sync", {
+      parsed = await erpCallMethod("mobileintl_app.api.v1.users_full_sync", {
         method: "POST",
         appToken: true,
         body: stripRootUndefined({

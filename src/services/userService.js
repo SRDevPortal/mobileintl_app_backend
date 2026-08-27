@@ -207,7 +207,7 @@ async function tryUsersLookupV1(merged = {}) {
   const q = buildUsersLookupQuery(merged);
   if (!q || Object.keys(q).length === 0) return null;
   try {
-    const parsed = await erpCallMethod("mobile_app.api.v1.users_lookup", {
+    const parsed = await erpCallMethod("mobileintl_app.api.v1.users_lookup", {
       method: "GET",
       query: q,
       appToken: true,
@@ -223,7 +223,7 @@ async function tryUsersLookupV1(merged = {}) {
 
 async function syncMobileAppUserViaV1(body = {}, { throwOnError = false } = {}) {
   try {
-    const parsed = await erpCallMethod("mobile_app.api.v1.users_sync", {
+    const parsed = await erpCallMethod("mobileintl_app.api.v1.users_sync", {
       method: "POST",
       body,
       appToken: true,

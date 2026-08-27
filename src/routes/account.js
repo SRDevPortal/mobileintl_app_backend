@@ -18,7 +18,7 @@ router.delete("/", async (req, res) => {
 
     const user = await findMobileAppUser({ external_id: uid, supabase_user_id: uid }, {}, {});
     const identity = user?.name || uid;
-    const erpResult = await erpCallMethod("mobile_app.api.v1.users_delete", {
+    const erpResult = await erpCallMethod("mobileintl_app.api.v1.users_delete", {
       method: "POST",
       body: { external_id: identity, supabase_user_id: uid },
       appToken: true,
