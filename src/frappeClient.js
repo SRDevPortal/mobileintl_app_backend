@@ -117,7 +117,8 @@ async function erpCallMethod(methodDottedPath, { method = "GET", query = {}, bod
   const headers = {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
-    ...(appToken ? { "X-ERP-Token": MOBILE_APP_ERP_TOKEN } : erpAuthHeader()),
+    ...erpAuthHeader(),
+    ...(appToken ? { "X-ERP-Token": MOBILE_APP_ERP_TOKEN } : {}),
   };
 
   const response = await fetch(url.toString(), {
