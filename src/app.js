@@ -14,6 +14,8 @@ const {
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY,
+  ONESIGNAL_APP_ID,
+  ONESIGNAL_REST_API_KEY,
   SUPPORT_TICKET_NOTIFICATION_POLL_INTERVAL_MS,
   SUPPORT_TICKET_NOTIFICATION_SCHEDULER_DISABLED,
 } = require("./config");
@@ -114,6 +116,11 @@ function createApp() {
       supabase: {
         configured: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY),
         serviceRoleConfigured: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+      },
+      notifications: {
+        oneSignalConfigured: Boolean(
+          ONESIGNAL_APP_ID && ONESIGNAL_REST_API_KEY,
+        ),
       },
     });
   });
