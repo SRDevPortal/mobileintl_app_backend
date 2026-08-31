@@ -153,6 +153,36 @@ async function erpCallMethod(methodDottedPath, { method = "GET", query = {}, bod
   return parsed;
 }
 
+async function erpUploadFile({ file, doctype, docname }) {
+  if (!ERP_BASE_URL || !ERP_TOKEN) {
+    throw Object.assign(new Error("ERP file upload is not configured"), { status: 503 });
+  }
+  if (!file?.buffer) throw Object.assign(new Error("Missing upload file"), { status: 400 });
+  const form = new FormData();
+  form.append("file", new Blob([file.buffer], { type: file.mimetype || "application/octet-stream" }), file.originalname || "attachment");
+  form.append("is_private", "0");
+  if (doctype) form.append("doctype", String(doctype));
+  if (docname) form.append("docname", String(docname));
+  const response = await fetch(new URL(`${ERP_BASE_URL}/api/method/upload_file`), {
+    method: "POST",
+    headers: { "ngrok-skip-browser-warning": "true", ...erpAuthHeader() },
+    body: form,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(payload?.message || payload?.exc || `ERP file upload failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  const result = payload?.message || payload;
+  const fileUrl = String(result?.file_url || "").trim();
+  if (!fileUrl) throw new Error("ERP did not return a file URL");
+  return {
+    key: result?.name || "",
+    url: new URL(fileUrl, `${ERP_BASE_URL}/`).toString(),
+  };
+}
+
 module.exports = {
   erpFetch,
   erpGetList,
@@ -161,4 +191,5 @@ module.exports = {
   erpDelete,
   erpGetDoc,
   erpCallMethod,
+  erpUploadFile,
 };

@@ -41,11 +41,20 @@ function resolveMimeType(fileMimetype, extFromName) {
   const normalizedMime = (fileMimetype || "").toLowerCase();
   if (normalizedMime === "application/pdf" || ext === ".pdf") return "application/pdf";
   if (normalizedMime.startsWith("image/")) return normalizedMime;
+  if (normalizedMime.startsWith("audio/") || normalizedMime.startsWith("video/")) return normalizedMime;
+  if (normalizedMime && normalizedMime !== "application/octet-stream") return normalizedMime;
   if (ext === ".png") return "image/png";
   if (ext === ".gif") return "image/gif";
   if (ext === ".webp") return "image/webp";
   if (ext === ".heic") return "image/heic";
   if (ext === ".heif") return "image/heif";
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".m4a") return "audio/mp4";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".mp4") return "video/mp4";
+  if (ext === ".mov") return "video/quicktime";
+  if (ext === ".doc") return "application/msword";
+  if (ext === ".docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   return "image/jpeg";
 }
 

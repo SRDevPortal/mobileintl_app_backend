@@ -37,6 +37,7 @@ const uploadsRouter = require("./routes/uploads");
 const webhookEventsRouter = require("./routes/webhookEvents");
 const authRouter = require("./routes/auth");
 const accountRouter = require("./routes/account");
+const aiChatRouter = require("./routes/aiChat");
 
 let supportTicketNotificationInterval = null;
 
@@ -118,6 +119,8 @@ function createApp() {
         serviceRoleConfigured: Boolean(SUPABASE_SERVICE_ROLE_KEY),
       },
       notifications: {
+        oneSignalAppIdConfigured: Boolean(ONESIGNAL_APP_ID),
+        oneSignalRestApiKeyConfigured: Boolean(ONESIGNAL_REST_API_KEY),
         oneSignalConfigured: Boolean(
           ONESIGNAL_APP_ID && ONESIGNAL_REST_API_KEY,
         ),
@@ -141,6 +144,7 @@ function createApp() {
   app.use("/api/v1/support-tickets", supportTicketsRouter);
   app.use("/api/v1/support/tickets", supportTicketsRouter);
   app.use("/api/v1/account", accountRouter);
+  app.use("/api/v1/ai-chat", aiChatRouter);
   app.use("/api/upload", requireUserOrAppToken, uploadsRouter);
   app.use("/api/v1/webhook-events", webhookEventsRouter);
 
