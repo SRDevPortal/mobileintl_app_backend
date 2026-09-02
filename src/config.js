@@ -61,7 +61,9 @@ const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 20000);
 const OPENAI_MAX_OUTPUT_TOKENS = Number(process.env.OPENAI_MAX_OUTPUT_TOKENS || 900);
 const OPENAI_MAX_RETRIES = Math.max(0, Number(process.env.OPENAI_MAX_RETRIES || 2));
 const REPORTS_OCR_TOKEN = normalizeSecret(process.env.REPORTS_OCR_TOKEN || APP_ERP_TOKEN);
-const REPORTS_OCR_FALLBACK_WEBHOOK_URL = trim(process.env.REPORTS_OCR_FALLBACK_WEBHOOK_URL || "");
+const REPORTS_OCR_FALLBACK_WEBHOOK_URL = trim(
+  process.env.REPORTS_OCR_FALLBACK_WEBHOOK_URL || "https://n8n.butest.tech/webhook/sriaas-reports",
+);
 const REPORTS_OCR_FALLBACK_TIMEOUT_MS = Number(process.env.REPORTS_OCR_FALLBACK_TIMEOUT_MS || 15000);
 const S3_PRESCRIPTION_PREFIX = trim(process.env.S3_PRESCRIPTION_PREFIX || "prescriptions");
 const S3_PROFILE_PREFIX = trim(process.env.S3_PROFILE_PREFIX || "profile-pics");

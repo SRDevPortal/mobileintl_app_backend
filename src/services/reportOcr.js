@@ -267,6 +267,14 @@ function unwrapFallbackPayload(payload) {
   return value;
 }
 
+function fallbackEventName(reportType) {
+  if (reportType === "lft") return "lft_report_extract";
+  if (reportType === "kft") return "kft_report_extract";
+  if (reportType === "cbc") return "cbc_report_extract";
+  if (reportType.startsWith("varicocele")) return "varicocele_report_extract";
+  return "fertility_report_extract";
+}
+
 async function extractReportWithFallbackWebhook({ reportType, fileUrl, fileName, customerId, customerEmail }) {
   if (!REPORTS_OCR_FALLBACK_WEBHOOK_URL) return null;
   const controller = new AbortController();
@@ -277,7 +285,7 @@ async function extractReportWithFallbackWebhook({ reportType, fileUrl, fileName,
       signal: controller.signal,
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        event: `${reportType}_report_extract`, report_type: reportType,
+        event: fallbackEventName(reportType), report_type: reportType,
         file_url: fileUrl, file_name: fileName,
         customer_id: customerId, customer_email: customerEmail,
         timestamp: new Date().toISOString(),
