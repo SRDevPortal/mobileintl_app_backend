@@ -18,6 +18,8 @@ const {
   ONESIGNAL_REST_API_KEY,
   SUPPORT_TICKET_NOTIFICATION_POLL_INTERVAL_MS,
   SUPPORT_TICKET_NOTIFICATION_SCHEDULER_DISABLED,
+  OPENAI_API_KEY,
+  REPORTS_OCR_FALLBACK_WEBHOOK_URL,
 } = require("./config");
 const { requireAppToken, requireUserOrAppToken } = require("./middleware/requireAppToken");
 
@@ -124,6 +126,11 @@ function createApp() {
         oneSignalConfigured: Boolean(
           ONESIGNAL_APP_ID && ONESIGNAL_REST_API_KEY,
         ),
+      },
+      reportsOcr: {
+        primaryConfigured: Boolean(OPENAI_API_KEY),
+        fallbackConfigured: Boolean(REPORTS_OCR_FALLBACK_WEBHOOK_URL),
+        ready: Boolean(OPENAI_API_KEY || REPORTS_OCR_FALLBACK_WEBHOOK_URL),
       },
     });
   });

@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const { APP_ERP_TOKEN, REPORTS_OCR_TOKEN } = require("../config");
-const { extractReportWithOpenAI, normalizeReportType } = require("../services/reportOcr");
+const { extractReportWithFallbackWebhook, extractReportWithOpenAI, normalizeReportType } = require("../services/reportOcr");
 const { uploadFileToS3 } = require("../services/s3PrescriptionUpload");
 
 const router = express.Router();
@@ -60,13 +60,26 @@ router.post("/extract", requireReportsToken, upload.single("file"), async (req, 
     }
 
     const startedAt = Date.now();
-    const result = await extractReportWithOpenAI({
-      reportType,
-      fileUrl,
-      fileName,
-      fileBuffer: req.file?.buffer,
-      mimeType: req.file?.mimetype,
-    });
+    let result;
+    try {
+      result = await extractReportWithOpenAI({
+        reportType,
+        fileUrl,
+        fileName,
+        fileBuffer: req.file?.buffer,
+        mimeType: req.file?.mimetype,
+      });
+    } catch (primaryError) {
+      console.error("Primary report OCR failed; trying configured fallback:", primaryError.message);
+      result = await extractReportWithFallbackWebhook({
+        reportType,
+        fileUrl,
+        fileName,
+        customerId: req.authUser?.id || req.body?.customer_id,
+        customerEmail: req.authUser?.email || req.body?.customer_email,
+      });
+      if (!result) throw primaryError;
+    }
     res.set("X-Reports-OCR-Duration-Ms", String(Date.now() - startedAt));
     return res.json({ ...result, file_url: fileUrl, file_name: fileName });
   } catch (error) {
@@ -82,6 +95,9 @@ router.post("/extract", requireReportsToken, upload.single("file"), async (req, 
       issues: [error.message || "Report extraction failed"],
       parameters: [],
       raw_text_summary: null,
+      file_url: fileUrl || null,
+      file_name: fileName || null,
+      retryable: statusCode === 429 || statusCode >= 500,
     });
   }
 });

@@ -3,6 +3,9 @@ const {
   OPENAI_MAX_OUTPUT_TOKENS,
   OPENAI_MODEL,
   OPENAI_TIMEOUT_MS,
+  OPENAI_MAX_RETRIES,
+  REPORTS_OCR_FALLBACK_WEBHOOK_URL,
+  REPORTS_OCR_FALLBACK_TIMEOUT_MS,
 } = require("../config");
 
 const REPORT_FIELDS = {
@@ -198,53 +201,98 @@ function extractResponseText(payload) {
 async function extractReportWithOpenAI({ reportType, fileUrl, fileName, fileBuffer, mimeType }) {
   if (!OPENAI_API_KEY) throw Object.assign(new Error("OPENAI_API_KEY is not configured"), { statusCode: 503 });
   const expectedFields = REPORT_FIELDS[reportType] || [];
+  const body = JSON.stringify({
+    model: OPENAI_MODEL,
+    max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS,
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text", text: buildPrompt(reportType, expectedFields) },
+        fileContentPart({ fileUrl, fileName, fileBuffer, mimeType }),
+      ],
+    }],
+    text: { format: { type: "json_schema", name: "report_ocr_fields", strict: true, schema: extractionSchema } },
+  });
+
+  let lastError;
+  for (let attempt = 0; attempt <= OPENAI_MAX_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body,
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw Object.assign(new Error(payload?.error?.message || `OpenAI request failed: ${response.status}`), {
+          statusCode: response.status,
+          retryable: response.status === 429 || response.status >= 500,
+        });
+      }
+      const outputText = extractResponseText(payload);
+      if (!outputText.trim()) throw new Error("OpenAI returned an empty extraction response");
+      return normalizeExtractionResult(JSON.parse(outputText), reportType, expectedFields);
+    } catch (error) {
+      lastError = error.name === "AbortError"
+        ? Object.assign(new Error("OpenAI extraction timed out"), { statusCode: 504, retryable: true })
+        : error;
+      if (!(lastError.retryable || !lastError.statusCode) || attempt >= OPENAI_MAX_RETRIES) throw lastError;
+      await new Promise((resolve) => setTimeout(resolve, 400 * (2 ** attempt)));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw lastError;
+}
+
+function unwrapFallbackPayload(payload) {
+  let value = payload;
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(value)) value = value[0];
+    if (typeof value === "string") {
+      try { value = JSON.parse(value); } catch (_) { break; }
+      continue;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value.fields)) {
+      const next = value.data ?? value.body ?? value.json ?? value.result;
+      if (next == null || next === value) break;
+      value = next;
+      continue;
+    }
+    break;
+  }
+  return value;
+}
+
+async function extractReportWithFallbackWebhook({ reportType, fileUrl, fileName, customerId, customerEmail }) {
+  if (!REPORTS_OCR_FALLBACK_WEBHOOK_URL) return null;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), REPORTS_OCR_FALLBACK_TIMEOUT_MS);
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(REPORTS_OCR_FALLBACK_WEBHOOK_URL, {
       method: "POST",
       signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
-        max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS,
-        input: [{
-          role: "user",
-          content: [
-            { type: "input_text", text: buildPrompt(reportType, expectedFields) },
-            fileContentPart({ fileUrl, fileName, fileBuffer, mimeType }),
-          ],
-        }],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "report_ocr_fields",
-            strict: true,
-            schema: extractionSchema,
-          },
-        },
+        event: `${reportType}_report_extract`, report_type: reportType,
+        file_url: fileUrl, file_name: fileName,
+        customer_id: customerId, customer_email: customerEmail,
+        timestamp: new Date().toISOString(),
       }),
     });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw Object.assign(new Error(payload?.error?.message || `OpenAI request failed: ${response.status}`), {
-        statusCode: response.status,
-      });
+    const text = await response.text();
+    if (!response.ok) throw Object.assign(new Error(`OCR fallback failed: ${response.status}`), { statusCode: 502 });
+    let payload;
+    try { payload = unwrapFallbackPayload(JSON.parse(text)); } catch (_) {
+      throw Object.assign(new Error("OCR fallback returned invalid JSON"), { statusCode: 502 });
     }
-    const outputText = extractResponseText(payload);
-    if (!outputText.trim()) throw new Error("OpenAI returned an empty extraction response");
-    return normalizeExtractionResult(JSON.parse(outputText), reportType, expectedFields);
-  } catch (error) {
-    if (error.name === "AbortError") {
-      throw Object.assign(new Error("OpenAI extraction timed out"), { statusCode: 504 });
-    }
-    throw error;
+    return normalizeExtractionResult(payload, reportType, REPORT_FIELDS[reportType] || []);
   } finally {
     clearTimeout(timeout);
   }
 }
 
-module.exports = { extractReportWithOpenAI, normalizeReportType };
+module.exports = { extractReportWithFallbackWebhook, extractReportWithOpenAI, normalizeReportType };
