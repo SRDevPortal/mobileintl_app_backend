@@ -80,3 +80,31 @@ server-to-server/Postman access; never bundle it in a mobile application.
 Set `SUPABASE_SERVICE_ROLE_KEY` in the deployed backend environment to enable
 the authenticated `DELETE /api/v1/account` flow. This key is server-only and
 must never be exposed to Flutter, source control, logs, or public build output.
+
+## AI chat compatibility
+
+The `/api/v1/ai-chat` routes call `wa_chat_hub.api.mobile_app` using
+`MOBILE_APP_ERP_TOKEN`. They use the authenticated user's ID, preserve the selected
+`profile_id` and conversation, and leave country-aware phone identity and patient
+ownership checks to Frappe. No phone country is guessed by this middleware.
+
+Deploy the matching Frappe chat ownership fix as well. Domestic sites can use the
+configured `IN` region; multi-country sites should enable
+`mobile_app_ai_require_country_code=1` with the matching `wa_chat_hub` support.
+Existing unqualified phone records need verified country prefixes; this middleware
+does not rewrite app, patient or chat-contact records.
+
+Errors retain `{ success: false, message }` and add a stable `code`. Only fixed,
+readable messages reach Flutter: Frappe tracebacks, internal paths and raw payloads
+are never returned by the chat routes. Important codes are `CHAT_ACCESS_DENIED`
+(403), `CHAT_PROFILE_REQUIRED` / `CHAT_PHONE_REQUIRED` (422), and
+`CHAT_UNAVAILABLE` (502/503). An upstream ERP authentication failure is a service
+error; it does not become a user-session 401. Successful response shapes do not
+change, so existing app versions can display the improved error messages.
+
+Attachments check the authenticated user's access to the selected conversation
+through Frappe before storing a file in S3 or Frappe. The send endpoint rechecks
+access. Oversized uploads return a readable 413 response.
+
+Run `npm test` for the AI chat route tests. They use local HTTP requests with
+mocked Frappe and upload providers and send no production messages or files.

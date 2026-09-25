@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const { erpCallMethod, erpUploadFile } = require("../frappeClient");
 const { uploadFileToS3 } = require("../services/s3PrescriptionUpload");
+const { aiChatErrorResponse } = require("../services/aiChatErrors");
 
 const router = express.Router();
 const METHOD_ROOT = "wa_chat_hub.api.mobile_app";
@@ -21,20 +22,24 @@ function unwrapMethodResponse(payload) {
   return payload;
 }
 
-function sendMethodResult(res, payload) {
+function methodResult(payload) {
   const result = unwrapMethodResponse(payload);
-  if (result?.success === true) return res.json(result);
+  if (result?.success === true && result.data && typeof result.data === "object") return result;
   const error = new Error(result?.message || "ERP AI chat returned an invalid response");
   error.status = 502;
+  error.payload = result;
   throw error;
 }
 
+function sendMethodResult(res, payload) {
+  return res.json(methodResult(payload));
+}
+
 function errorResponse(res, error) {
-  const status = error.status >= 400 && error.status < 600 ? error.status : 502;
-  return res.status(status).json({
-    success: false,
-    message: error.message || "AI chat is unavailable",
-  });
+  const { status, body } = aiChatErrorResponse(error);
+  // Log only operational metadata, never upstream payloads or chat content.
+  if (status >= 500) console.error("AI chat upstream failure", { status, upstreamStatus: Number(error?.status) || null });
+  return res.status(status).json(body);
 }
 
 router.post("/session", async (req, res) => {
@@ -125,6 +130,26 @@ router.post("/attachments", upload.single("file"), async (req, res) => {
     if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
       return res.status(400).json({ success: false, message: "Unsupported attachment type" });
     }
+    const conversation = req.body?.conversation;
+    const clientMessageId = req.body?.client_message_id;
+    if (typeof conversation !== "string" || !conversation.trim()
+        || typeof clientMessageId !== "string" || !clientMessageId.trim()) {
+      return res.status(400).json({ success: false, message: "Conversation and message ID are required" });
+    }
+    // Authorize through Frappe before either upload provider can store a file.
+    const access = methodResult(await erpCallMethod(`${METHOD_ROOT}.get_messages`, {
+      method: "GET",
+      appToken: true,
+      query: {
+        external_id: externalId,
+        conversation,
+        profile_id: req.body?.profile_id,
+        limit: 1,
+      },
+    }));
+    if (String(access.data.conversation_id) !== conversation) {
+      throw Object.assign(new Error("ERP returned an unexpected conversation"), { status: 502 });
+    }
     const hasS3 = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "S3_BUCKET"]
       .every((key) => Boolean(process.env[key]));
     const uploaded = hasS3
@@ -182,5 +207,8 @@ router.post("/escalate", async (req, res) => {
     return errorResponse(res, error);
   }
 });
+
+// Multer rejects oversized/unexpected files before the async handler runs.
+router.use((error, _req, res, _next) => errorResponse(res, error));
 
 module.exports = router;
